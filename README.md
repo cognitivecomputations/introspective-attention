@@ -3,6 +3,7 @@ Forked from Microsoft's Differential Transformer
 https://github.com/microsoft/unilm/tree/master/Diff-Transformer
 
 # Introspective Attention:
+by Eric Hartford
 
 For input $X \in \mathbb{R}^{n \times d}$ and $i \in \{1,2,3\}$:
 
