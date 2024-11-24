@@ -20,7 +20,8 @@ class IntrospectiveFlashDiff2(nn.Module):
         args,
         embed_dim,
         num_heads,
-        num_introspective_layers=3
+        num_introspective_layers=3,
+        max_sequence_length=None  # Optional parameter to limit memory usage
     ):
         super().__init__()
         self.args = args
@@ -32,6 +33,7 @@ class IntrospectiveFlashDiff2(nn.Module):
         self.n_rep = self.num_heads // self.num_kv_heads
         self.head_dim = embed_dim // num_heads
         self.scaling = self.head_dim ** -0.5
+        self.max_sequence_length = max_sequence_length
 
         # Create P_i layers with flash attention components
         self.P_layers = nn.ModuleList([
@@ -71,8 +73,23 @@ class IntrospectiveFlashDiff2(nn.Module):
     ):
         bsz, tgt_len, embed_dim = x.size()
         
-        # Store intermediate K, V for concatenation
-        accumulated_kv = []
+        # Check sequence length against maximum if set
+        if self.max_sequence_length is not None and tgt_len > self.max_sequence_length:
+            raise ValueError(f"Input sequence length {tgt_len} exceeds maximum allowed length {self.max_sequence_length}")
+        
+        # Pre-allocate tensors for accumulated K,V
+        max_kv_len = tgt_len * len(self.P_layers)  # Maximum possible length after all concatenations
+        accumulated_k = torch.empty(
+            bsz, max_kv_len, self.num_kv_heads, self.head_dim,
+            dtype=x.dtype, device=x.device
+        )
+        accumulated_v = torch.empty(
+            bsz, max_kv_len, self.num_kv_heads, self.head_dim,
+            dtype=x.dtype, device=x.device
+        )
+        
+        # Track current position in accumulated tensors
+        current_position = 0
         layer_outputs = []
 
         # Pre-compute normalized lambda weights
@@ -92,38 +109,36 @@ class IntrospectiveFlashDiff2(nn.Module):
             k = k.view(bsz, tgt_len, self.num_kv_heads, self.head_dim)
             v = v.view(bsz, tgt_len, self.num_kv_heads, self.head_dim)
 
-            # Hierarchical access to previous layers' K,V
-            if i > 0:
-                accumulated_k = torch.cat([prev_k.view(bsz, -1, self.num_kv_heads, self.head_dim) 
-                                        for prev_k, _ in accumulated_kv], dim=1)
-                accumulated_v = torch.cat([prev_v.view(bsz, -1, self.num_kv_heads, self.head_dim) 
-                                        for _, prev_v in accumulated_kv], dim=1)
-                k = torch.cat([k, accumulated_k], dim=1)
-                v = torch.cat([v, accumulated_v], dim=1)
+            # Store current K,V in pre-allocated tensors
+            next_position = current_position + tgt_len
+            accumulated_k[:, current_position:next_position] = k
+            accumulated_v[:, current_position:next_position] = v
+            
+            # Use accumulated K,V for attention
+            k_to_use = accumulated_k[:, :next_position]
+            v_to_use = accumulated_v[:, :next_position]
 
             # Apply rotary embeddings
             q = apply_rotary_emb(q, *rel_pos)
-            k = apply_rotary_emb(k, *rel_pos)
+            k_to_use = apply_rotary_emb(k_to_use, *rel_pos)
 
             # Flash attention computation
             attn = flash_attn_func(
                 q,  # [bsz, tgt_len, num_heads, head_dim]
-                k,  # [bsz, src_len, num_kv_heads, head_dim]
-                v,  # [bsz, src_len, num_kv_heads, head_dim]
+                k_to_use,  # [bsz, src_len, num_kv_heads, head_dim]
+                v_to_use,  # [bsz, src_len, num_kv_heads, head_dim]
                 causal=True
             )
 
-            # Reshape output
+            # Reshape output and apply layer norm
             attn = attn.reshape(bsz, tgt_len, embed_dim)
-            
-            # Apply layer norm
             attn = p_layer['layer_norm'](attn)
             
             # Store normalized output with normalized lambda weights
             layer_outputs.append(attn * lambda_weight[i])
             
-            # Store current K,V for next layer
-            accumulated_kv.append((k, v))
+            # Update position for next iteration
+            current_position = next_position
 
         # Combine all layer outputs with their respective lambda weights
         combined_output = sum(layer_outputs)
