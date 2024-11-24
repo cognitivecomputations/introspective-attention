@@ -23,6 +23,10 @@ $\text{Output} = \text{LayerNorm}(\sum(\lambda_iA_i) + \alpha X)$ &nbsp; &nbsp; 
 2. Dimensionality preserved through projections
 3. Gradient and scale stabilized
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
 # Differential Transformer
 ## Approach
 <div align="center">
