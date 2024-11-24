@@ -1,3 +1,19 @@
+Forked from Microsoft's Differential Transformer
+
+https://github.com/microsoft/unilm/tree/master/Diff-Transformer
+
+# Introspective Attention:
+
+For input X and i ∈ {1,2,3}:
+
+Pᵢ = {Qᵢ, Kᵢ, Vᵢ, Aᵢ}
+where:
+Aᵢ = softmax(QᵢKᵢ̃ᵀ)Vᵢ̃
+Kᵢ̃,Vᵢ̃ = concat(P₀...Pᵢ₋₁)
+λᵢ = softmax(f(X))  # Input-conditioned, naturally bounded
+
+Output = Σ(λᵢAᵢ) + residual  # Add residual connection for gradient stability
+
 # Differential Transformer
 ## Approach
 <div align="center">
