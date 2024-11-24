@@ -28,6 +28,16 @@ $\text{Output} = \text{LayerNorm}(\sum(\lambda_iA_i) + \alpha X)$ &nbsp; &nbsp; 
 
 ![image](https://github.com/user-attachments/assets/cdc103b7-6e78-49c0-8364-2a2f61b4e8cd)
 
+## Contents
+`introspective_diffattn.py` contains naive implementation of introspective attention.
+
+`introspective_flashdiff_1.py` contains introspective attention implemented with FlashAttention, for packages that support different qk/v dimensions (e.g., our [customized-flash-attention](https://aka.ms/flash-diff) and [xformers](https://github.com/facebookresearch/xformers)). **(Recommended for faster training and inference)**
+
+`introspective_flashdiff_2.py` contains introspective attention implemented with FlashAttention, for packages that **do not** support different qk/v dimensions (e.g., [flash-attention](https://github.com/Dao-AILab/flash-attention)).
+
+We recommend using models with a sufficiently large number of heads to minimize the impact of halving heads. For instance, using Diff Transformer with more than 8 heads (the minimum used in the paper, with the same number of parameters as Transformer with 16 heads) is advisable.
+
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
