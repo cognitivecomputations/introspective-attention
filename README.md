@@ -24,6 +24,10 @@ $\text{Output} = \text{LayerNorm}(\sum(\lambda_iA_i) + \alpha X)$ &nbsp; &nbsp; 
 2. Dimensionality preserved through projections
 3. Gradient and scale stabilized
 
+![image](https://github.com/user-attachments/assets/2e39f22d-5bc0-4339-be4d-2eff26fdcd1e)
+
+![image](https://github.com/user-attachments/assets/cdc103b7-6e78-49c0-8364-2a2f61b4e8cd)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
