@@ -4,19 +4,24 @@ https://github.com/microsoft/unilm/tree/master/Diff-Transformer
 
 # Introspective Attention:
 
-For input X and i ∈ {1,2,3}:
+For input $X \in \mathbb{R}^{n \times d}$ and $i \in \{1,2,3\}$:
 
-Pᵢ = {Qᵢ, Kᵢ, Vᵢ, Aᵢ}
+$P_i = \{Q_i, K_i, V_i, A_i\}$
 
 where:
 
-Aᵢ = softmax(QᵢKᵢ̃ᵀ)Vᵢ̃
+$A_i = \text{LayerNorm}(\text{softmax}(Q_iK_i^T/\sqrt{d_k})V_i)$
 
-Kᵢ̃,Vᵢ̃ = concat(P₀...Pᵢ₋₁)
+$\tilde{K_i},\tilde{V_i} = \text{concat}(P_0...P_{i-1})$ &nbsp; &nbsp; # dims: $\mathbb{R}^{n \times (i(d_k + d_v))}$
 
-λᵢ = softmax(f(X))  # Input-conditioned, naturally bounded
+$\lambda_i = \text{LayerNorm}(\text{sigmoid}(w_{\lambda_i}))$ &nbsp; &nbsp; # Stabilized weights
 
-Output = Σ(λᵢAᵢ) + residual  # Add residual connection for gradient stability
+$\text{Output} = \text{LayerNorm}(\sum(\lambda_iA_i) + \alpha X)$ &nbsp; &nbsp; # Residual connection
+
+**Key properties:**
+1. Path[$i$] has parallel access to Path[0...$i$-1]
+2. Dimensionality preserved through projections
+3. Gradient and scale stabilized
 
 # Differential Transformer
 ## Approach
