@@ -14,7 +14,7 @@ $A_i = \text{LayerNorm}(\text{softmax}(Q_iK_i^T/\sqrt{d_k})V_i)$
 
 $\tilde{K_i},\tilde{V_i} = \text{concat}(P_0...P_{i-1})$ &nbsp; &nbsp; # dims: $\mathbb{R}^{n \times (i(d_k + d_v))}$
 
-$\lambda_i = \text{LayerNorm}(\text{sigmoid}(w_{\lambda_i}))$ &nbsp; &nbsp; # Stabilized weights
+$\lambda_i = \text{LayerNorm}(\text{sigmoid}(w_{\lambda_i}))$ # Stabilized weights
 
 $\text{Output} = \text{LayerNorm}(\sum(\lambda_iA_i) + \alpha X)$ &nbsp; &nbsp; # Residual connection
 
